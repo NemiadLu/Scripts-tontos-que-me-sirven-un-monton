@@ -2,7 +2,6 @@ import ctypes
 import os
 import time
 
-# Corrección: Se agregó import ctypes correctamente arriba
 CDS_TEMPORARY = 0
 DISP_CHANGE_SUCCESSFUL = 0
 
@@ -37,18 +36,18 @@ class DEVMODE(ctypes.Structure):
       ("dmDisplayFrequency", ctypes.c_ulong),
       ("dmICMMaxValue", ctypes.c_ulong),
       ("dmICMIntent", ctypes.c_ulong),
-      (
-          "dmMediaType",
-          ctypes.c_ulong,
-      ),  # Corrección: Se reemplazó el campo inválido anterior
+      ("dmMediaType", ctypes.c_ulong),
       ("dmPanningWidth", ctypes.c_ulong),
       ("dmPanningHeight", ctypes.c_ulong),
   ]
 
 
 def mostrar_mensaje(titulo, texto, tipo=0):
-  icono = 0x10 if tipo == 16 else (0x40 if tipo == 64 else 0x0)
-  ctypes.windll.user32.MessageBoxW(0, texto, titulo, 0x40000 | icono)
+  try:
+    icono = 0x10 if tipo == 16 else (0x40 if tipo == 64 else 0x0)
+    ctypes.windll.user32.MessageBoxW(0, texto, titulo, 0x40000 | icono)
+  except Exception:
+    print(f"\n[{titulo}] {texto}")
 
 
 def cambiar_resolucion(ancho, alto, hz):
@@ -71,10 +70,11 @@ def cambiar_resolucion(ancho, alto, hz):
         tipo=64,
     )
   else:
+    # Códigos comunes: -2 (DISP_CHANGE_FAILED), -1 (DISP_CHANGE_BADMODE)
     mostrar_mensaje(
         "Error de Modo",
-        f"Windows devolvió el código: {resultado}\n(El monitor o  el Sistema"
-        " Operativo rechazan esta combinación de Hz).",
+        f"Windows devolvió el código: {resultado}\n(El driver de video o el"
+        " Sistema Operativo rechazan esta combinación).",
         tipo=16,
     )
 
@@ -91,6 +91,8 @@ def main():
       ("1024x768 (4:3) - 75Hz", 1024, 768, 75),
   ]
 
+  opcion_personalizada = len(resoluciones_preset) + 1
+
   while True:
     os.system("cls" if os.name == "nt" else "clear")
     print("Cambiador para Windows 11")
@@ -98,14 +100,11 @@ def main():
     for i, (nombre, _, _, _) in enumerate(resoluciones_preset, 1):
       print(f" {i}. {nombre}")
 
-    print(
-        f" {len(resoluciones_preset) + 1}. Personalizado (Elegir Ancho, Alto y"
-        " Hz)"
-    )
+    print(f" {opcion_personalizada}. Personalizado (Elegir Ancho, Alto y Hz)")
     print(" 0. Salir")
 
     opcion = input(
-        f"\nSelecciona una opción (0-{len(resoluciones_preset) + 1}): "
+        f"\nSelecciona una opción (0-{opcion_personalizada}): "
     ).strip()
 
     if opcion == "0":
@@ -120,7 +119,7 @@ def main():
         print(f"\nAplicando {ancho}x{alto} a {hz}Hz...")
         cambiar_resolucion(ancho, alto, hz)
 
-      elif num == len(resoluciones_preset + 1):
+      elif num == opcion_personalizada:
         print("\nModo Personalizado")
         input_ancho = input("Ingresa el Ancho (ej. 1360): ").strip()
         input_alto = input("Ingresa el Alto (ej. 768): ").strip()
