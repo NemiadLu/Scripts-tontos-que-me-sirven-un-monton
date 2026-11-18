@@ -1,8 +1,10 @@
 import ctypes
 import os
+import sys
 import time
 
-CDS_TEMPORARY = 0
+# Flags requeridos para forzar el modo exclusivo tipo videojuego
+CDS_FULLSCREEN = 0x00000004
 DISP_CHANGE_SUCCESSFUL = 0
 
 DM_PELSWIDTH = 0x00080000
@@ -42,15 +44,14 @@ class DEVMODE(ctypes.Structure):
   ]
 
 
-def mostrar_mensaje(titulo, texto, tipo=0):
+def es_administrador():
   try:
-    icono = 0x10 if tipo == 16 else (0x40 if tipo == 64 else 0x0)
-    ctypes.windll.user32.MessageBoxW(0, texto, titulo, 0x40000 | icono)
-  except Exception:
-    print(f"\n[{titulo}] {texto}")
+    return ctypes.windll.shell32.IsUserAnAdmin()
+  except:
+    return False
 
 
-def cambiar_resolucion(ancho, alto, hz):
+def cambiar_resolucion_estilo_juego(ancho, alto, hz):
   devmode = DEVMODE()
   devmode.dmSize = ctypes.sizeof(DEVMODE)
   devmode.dmPelsWidth = ancho
@@ -58,28 +59,38 @@ def cambiar_resolucion(ancho, alto, hz):
   devmode.dmDisplayFrequency = hz
   devmode.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY
 
+  # Aplicamos utilizando el modo exclusivo tipo pantalla completa de juegos
   resultado = ctypes.windll.user32.ChangeDisplaySettingsW(
-      ctypes.byref(devmode), CDS_TEMPORARY
+      ctypes.byref(devmode), CDS_FULLSCREEN
   )
-  time.sleep(1)
+  time.sleep(0.5)
 
   if resultado == DISP_CHANGE_SUCCESSFUL:
-    mostrar_mensaje(
-        "¡Éxito!",
-        f"Resolución aplicada correctamente:\n-> {ancho}x{alto} a {hz}Hz",
-        tipo=64,
+    print(
+        f"\n[ÉXITO] Resolución cambiada a {ancho}x{alto} @ {hz}Hz (Modo"
+        " Exclusivo)."
     )
   else:
-    # Códigos comunes: -2 (DISP_CHANGE_FAILED), -1 (DISP_CHANGE_BADMODE)
-    mostrar_mensaje(
-        "Error de Modo",
-        f"Windows devolvió el código: {resultado}\n(El driver de video o el"
-        " Sistema Operativo rechazan esta combinación).",
-        tipo=16,
+    print(
+        f"\n[AVISO] Windows devolvió el código de error: {resultado}. Es"
+        " posible que el driver gráfico de Ghost Spectre no permita esta"
+        " frecuencia."
     )
 
 
 def main():
+  if not es_administrador():
+    print(
+        "[!] ATENCIÓN: Este script requiere privilegios de Administrador para"
+        " forzar resoluciones en Windows 11."
+    )
+    print(
+        "[!] Por favor, vuelve a abrir la terminal haciendo clic derecho y"
+        " selecciona 'Ejecutar como administrador'."
+    )
+    input("\nPresiona ENTER para salir...")
+    sys.exit()
+
   resoluciones_preset = [
       ("1360x768 (Nativa Ideal) - 60Hz", 1360, 768, 60),
       ("1360x768 (Nativa Máxima) - 75Hz", 1360, 768, 75),
@@ -95,12 +106,12 @@ def main():
 
   while True:
     os.system("cls" if os.name == "nt" else "clear")
-    print("Cambiador para Windows 11")
+    print("=== Cambiador de Resolución Estilo Videojuego (Ghost Spectre Fix) ===")
 
     for i, (nombre, _, _, _) in enumerate(resoluciones_preset, 1):
       print(f" {i}. {nombre}")
 
-    print(f" {opcion_personalizada}. Personalizado (Elegir Ancho, Alto y Hz)")
+    print(f" {opcion_personalizada}. Personalizado (Ancho, Alto y Hz)")
     print(" 0. Salir")
 
     opcion = input(
@@ -116,11 +127,12 @@ def main():
 
       if 1 <= num <= len(resoluciones_preset):
         _, ancho, alto, hz = resoluciones_preset[num - 1]
-        print(f"\nAplicando {ancho}x{alto} a {hz}Hz...")
-        cambiar_resolucion(ancho, alto, hz)
+        print(f"\nForzando pantalla completa a {ancho}x{alto} a {hz}Hz...")
+        cambiar_resolucion_estilo_juego(ancho, alto, hz)
+        input("\nPresiona ENTER para volver al menú...")
 
       elif num == opcion_personalizada:
-        print("\nModo Personalizado")
+        print("\n--- Modo Personalizado ---")
         input_ancho = input("Ingresa el Ancho (ej. 1360): ").strip()
         input_alto = input("Ingresa el Alto (ej. 768): ").strip()
         input_hz = input("Ingresa los Hz (ej. 60 o 75): ").strip()
@@ -130,24 +142,23 @@ def main():
             and input_alto.isdigit()
             and input_hz.isdigit()
         ):
-          cambiar_resolucion(
+          cambiar_resolucion_estilo_juego(
               int(input_ancho), int(input_alto), int(input_hz)
           )
         else:
-          mostrar_mensaje(
-              "Error", "Debes ingresar valores numéricos válidos.", tipo=16
-          )
+          print("\n[Error] Debes ingresar valores numéricos válidos.")
+        input("\nPresiona ENTER para volver al menú...")
       else:
-        mostrar_mensaje("Aviso", "Opción fuera de rango.", tipo=16)
+        print("\n[Aviso] Opción fuera de rango.")
+        time.sleep(1.5)
     else:
-      mostrar_mensaje("Aviso", "Entrada no válida. Ingresa un número.", tipo=16)
+      print("\n[Aviso] Entrada no válida.")
+      time.sleep(1.5)
 
 
 if __name__ == "__main__":
   try:
     main()
   except Exception as e:
-    print(f"\n[ERROR CRÍTICO ENCONTRADO]: {e}")
-    input(
-        "\nEl programa se detuvo. Presiona ENTER para cerrar esta ventana..."
-    )
+    print(f"\n[ERROR CRÍTICO]: {e}")
+    input("\nEl programa se detuvo. Presiona ENTER para salir...")
