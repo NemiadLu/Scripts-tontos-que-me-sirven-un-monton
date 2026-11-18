@@ -1,8 +1,8 @@
 import ctypes
 import os
-import sys
 import time
 
+# Corrección: Se agregó import ctypes correctamente arriba
 CDS_TEMPORARY = 0
 DISP_CHANGE_SUCCESSFUL = 0
 
@@ -37,7 +37,10 @@ class DEVMODE(ctypes.Structure):
       ("dmDisplayFrequency", ctypes.c_ulong),
       ("dmICMMaxValue", ctypes.c_ulong),
       ("dmICMIntent", ctypes.c_ulong),
-      ("dmropic", ctypes.c_ulong),
+      (
+          "dmMediaType",
+          ctypes.c_ulong,
+      ),  # Corrección: Se reemplazó el campo inválido anterior
       ("dmPanningWidth", ctypes.c_ulong),
       ("dmPanningHeight", ctypes.c_ulong),
   ]
@@ -70,8 +73,8 @@ def cambiar_resolucion(ancho, alto, hz):
   else:
     mostrar_mensaje(
         "Error de Modo",
-        f"Windows devolvió el código: {resultado}\n(El monitor sigue"
-        " rechazando esta combinación exacta de Hz).",
+        f"Windows devolvió el código: {resultado}\n(El monitor o  el Sistema"
+        " Operativo rechazan esta combinación de Hz).",
         tipo=16,
     )
 
@@ -90,8 +93,7 @@ def main():
 
   while True:
     os.system("cls" if os.name == "nt" else "clear")
-    print("Cambiador Ideal - Basado en un LG Flatron W1642S (56-75Hz)")
-    print("==========================================================")
+    print("Cambiador para Windows 11")
 
     for i, (nombre, _, _, _) in enumerate(resoluciones_preset, 1):
       print(f" {i}. {nombre}")
@@ -118,7 +120,7 @@ def main():
         print(f"\nAplicando {ancho}x{alto} a {hz}Hz...")
         cambiar_resolucion(ancho, alto, hz)
 
-      elif num == len(resoluciones_preset) + 1:
+      elif num == len(resoluciones_preset + 1):
         print("\nModo Personalizado")
         input_ancho = input("Ingresa el Ancho (ej. 1360): ").strip()
         input_alto = input("Ingresa el Alto (ej. 768): ").strip()
